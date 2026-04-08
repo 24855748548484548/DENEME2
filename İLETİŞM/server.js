@@ -7,17 +7,16 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Statik dosyaları (HTML, CSS, JS) 'public' klasöründen çek
+// HTML ve CSS dosyalarını 'public' klasöründen okumasını söyler
 app.use(express.static(path.join(__dirname, 'public')));
 
 io.on('connection', (socket) => {
-    // Kullanıcıya rastgele bir ID ata
+    // Kullanıcı bağlandığında rastgele ID oluştur
     const userId = "Anon-" + Math.floor(1000 + Math.random() * 9000);
     socket.emit('my-id', userId);
-
     console.log(userId + " bağlandı.");
 
-    // Mesaj geldiğinde herkese (gönderen dahil) ilet
+    // Mesaj geldiğinde herkese dağıt
     socket.on('send-message', (data) => {
         io.emit('receive-message', {
             id: userId,
@@ -31,9 +30,8 @@ io.on('connection', (socket) => {
     });
 });
 
-// RENDER İÇİN KRİTİK DEĞİŞİKLİK: 
-// Sabit 3000 yerine, sunucunun verdiği portu (process.env.PORT) kullanıyoruz.
+// RENDER İÇİN KRİTİK: Port ve 0.0.0.0 ayarı
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Sunucu ${PORT} portunda başarıyla çalışıyor!`);
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Sunucu ${PORT} portunda çalışıyor.`);
 });
