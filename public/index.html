@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anonim Chat | ID Sistemi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { background-color: #111b21; color: #e9edef; font-family: sans-serif; }
+        .chat-area { height: calc(100vh - 140px); overflow-y: auto; background-color: #0b141a; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
+    </style>
+</head>
+<body class="flex flex-col h-screen max-w-xl mx-auto border-x border-gray-800 shadow-2xl">
+
+    <div class="bg-[#2a3942] p-4 flex justify-between items-center border-b border-gray-700">
+        <div>
+            <h2 class="font-bold text-emerald-500 text-lg">Anonim Sohbet</h2>
+            <p class="text-[10px] text-gray-400">Verileriniz kaydedilmez.</p>
+        </div>
+        <div class="text-right">
+            <span id="displayId" class="bg-[#202c33] px-3 py-1 rounded-full text-xs font-mono text-emerald-400 border border-emerald-900/50">Bağlanıyor...</span>
+        </div>
+    </div>
+
+    <div id="messages" class="flex-1 p-4 flex flex-col gap-3 chat-area"></div>
+
+    <div class="bg-[#2a3942] p-3 flex items-center gap-2">
+        <input id="msgInput" type="text" placeholder="Mesajınızı yazın..." 
+               class="flex-1 bg-[#202c33] p-3 rounded-xl outline-none text-sm placeholder-gray-500 border border-transparent focus:border-emerald-700 transition-all">
+        <button onclick="sendMessage()" 
+                class="bg-emerald-500 text-[#111b21] w-12 h-12 rounded-full flex items-center justify-center hover:bg-emerald-400 active:scale-95 transition-all shadow-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+        </button>
+    </div>
+
+    <script>
+        const socket = io();
+        const messagesDiv = document.getElementById('messages');
+        const displayId = document.getElementById('displayId');
+        let myId = "";
+
+        socket.on('my-id', (id) => {
+            myId = id;
+            displayId.innerText = "ID: " + id;
+        });
+
+        function sendMessage() {
+            const input = document.getElementById('msgInput');
+            if(input.value.trim() !== "") {
+                socket.emit('send-message', { text: input.value });
+                input.value = "";
+            }
+        }
+
+        socket.on('receive-message', (data) => {
+            const isMe = data.id === myId;
+            const msgHtml = `
+                <div class="${isMe ? 'self-end bg-[#005c4b] rounded-tr-none' : 'self-start bg-[#202c33] rounded-tl-none'} p-2 px-3 rounded-2xl max-w-[85%] shadow-md border ${isMe ? 'border-emerald-700' : 'border-gray-800'}">
+                    <p class="text-[9px] ${isMe ? 'text-emerald-200' : 'text-emerald-500'} font-bold mb-1">${data.id}</p>
+                    <p class="text-[14px] leading-tight">${data.text}</p>
+                    <span class="text-[9px] text-gray-500 float-right mt-1 ml-4">${data.time}</span>
+                </div>
+            `;
+            messagesDiv.innerHTML += msgHtml;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        });
+
+        document.getElementById('msgInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>
