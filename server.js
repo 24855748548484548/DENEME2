@@ -7,31 +7,52 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Dosyaları 'public' klasöründen sun
 app.use(express.static(path.join(__dirname, 'public')));
 
-io.on('connection', (socket) => {
-    // Rastgele kullanıcı ID'si oluştur
-    const userId = "Anon-" + Math.floor(1000 + Math.random() * 9000);
-    socket.emit('my-id', userId);
-    console.log(userId + " bağlandı.");
+// Kullanıcı profillerini (kullanıcı adı: şifre) RAM'de tutan liste
+const registeredUsers = {};
 
-    // Mesaj geldiğinde herkese gönder
+io.on('connection', (socket) => {
+    
+    socket.on('auth-attempt', (data) => {
+        const { username, password, room } = data;
+
+        // Profil kontrolü
+        if (registeredUsers[username]) {
+            // Kullanıcı var, şifre doğru mu?
+            if (registeredUsers[username] !== password) {
+                return socket.emit('login-error', 'Bu kullanıcı adı kayıtlı ve şifre yanlış!');
+            }
+        } else {
+            // Yeni profil oluştur (Hafızaya al)
+            registeredUsers[username] = password;
+        }
+
+        // Giriş başarılı
+        socket.username = username;
+        socket.currentRoom = room;
+        socket.join(room);
+        
+        socket.emit('login-success', { username, room });
+    });
+
     socket.on('send-message', (data) => {
-        io.emit('receive-message', {
-            id: userId,
+        if (!socket.username || !socket.currentRoom) return;
+
+        // Mesajı sadece o odadakilere anlık ilet (Hafızaya kaydetme)
+        io.to(socket.currentRoom).emit('receive-message', {
+            sender: socket.username,
             text: data.text,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
     });
 
     socket.on('disconnect', () => {
-        console.log(userId + " ayrıldı.");
+        console.log('Kullanıcı ayrıldı.');
     });
 });
 
-// Render ve dış dünya için port ayarı
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Sunucu ${PORT} portunda aktif.`);
+    console.log(`Sunucu ${PORT} portunda profil desteğiyle çalışıyor.`);
 });
