@@ -7,16 +7,17 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// Statik dosyaları (HTML, CSS, JS) 'public' klasöründen çek
 app.use(express.static(path.join(__dirname, 'public')));
 
 io.on('connection', (socket) => {
-    // Kullanıcıya rastgele ID ver
+    // Kullanıcıya rastgele bir ID ata
     const userId = "Anon-" + Math.floor(1000 + Math.random() * 9000);
     socket.emit('my-id', userId);
 
     console.log(userId + " bağlandı.");
 
-    // Mesaj geldiğinde herkese ilet
+    // Mesaj geldiğinde herkese (gönderen dahil) ilet
     socket.on('send-message', (data) => {
         io.emit('receive-message', {
             id: userId,
@@ -30,6 +31,9 @@ io.on('connection', (socket) => {
     });
 });
 
-server.listen(3000, () => {
-    console.log('Sunucu 3000 portunda çalışıyor. Tarayıcıdan http://localhost:3000 adresine gidin.');
+// RENDER İÇİN KRİTİK DEĞİŞİKLİK: 
+// Sabit 3000 yerine, sunucunun verdiği portu (process.env.PORT) kullanıyoruz.
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Sunucu ${PORT} portunda başarıyla çalışıyor!`);
 });
