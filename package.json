@@ -1,7 +1,6 @@
 {
-  "name": "anonim-chat",
+  "name": "glowchat",
   "version": "1.0.0",
-  "description": "Anonim Mesajlaşma Platformu",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
