@@ -8,40 +8,8 @@
     <script src="/socket.io/socket.io.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-        
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background: linear-gradient(135deg, #0f172a 0%, #f8fafc 100%);
-            background-attachment: fixed;
-            color: #1e293b; 
-            height: 100vh;
-            margin: 0;
-        }
-
-        .auth-card {
-            background: white;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-        }
-
-        .input-field {
-            background: #f1f5f9;
-            border: 2px solid transparent;
-            transition: all 0.2s;
-        }
-
-        .input-field:focus {
-            background: white;
-            border-color: #1e293b;
-            outline: none;
-        }
-
-        .btn-primary {
-            background: #1e293b;
-            color: white;
-            font-weight: 700;
-        }
-
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #0f172a 0%, #f8fafc 100%); background-attachment: fixed; height: 100vh; margin: 0; }
+        .auth-card { background: white; border: 1px solid #e2e8f0; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
         .msg-me { background: #1e293b; color: white; border-radius: 18px 18px 0 18px; }
         .msg-them { background: #f1f5f9; color: #1e293b; border-radius: 18px 18px 18px 0; border: 1px solid #e2e8f0; }
     </style>
@@ -51,36 +19,43 @@
     <div id="login-screen" class="w-full max-w-md p-10 auth-card rounded-3xl">
         <div class="text-center mb-8">
             <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">GlowVibe</h1>
-            <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Güvenli İletişim Hattı</p>
+            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em] mt-2">Banka Düzeyi Güvenlik</p>
         </div>
-        
         <div class="space-y-4">
-            <input id="uName" type="text" placeholder="Kullanıcı Adı" class="w-full p-4 rounded-xl input-field text-slate-900 font-semibold">
+            <input id="uName" type="text" placeholder="Kullanıcı Adı" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-slate-900 font-semibold">
             <div class="grid grid-cols-2 gap-3">
-                <input id="uRoom" type="text" placeholder="Oda ID" class="p-4 rounded-xl input-field text-slate-900 font-semibold">
-                <input id="uRoomPass" type="password" placeholder="Şifre" class="p-4 rounded-xl input-field text-slate-900 font-semibold">
+                <input id="uRoom" type="text" placeholder="Oda ID" class="p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-slate-900 font-semibold">
+                <input id="uRoomPass" type="password" placeholder="Şifre" class="p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-slate-900 font-semibold">
             </div>
-            <button onclick="enterGlow()" class="w-full btn-primary p-5 rounded-xl tracking-widest hover:opacity-90 transition-all">SİSTEME BAĞLAN</button>
+            <button onclick="enterGlow()" class="w-full bg-slate-900 text-white p-5 rounded-xl font-bold tracking-widest hover:bg-slate-800 transition-all">SİSTEME BAĞLAN</button>
         </div>
     </div>
 
-    <div id="chat-screen" class="hidden w-full h-[90vh] max-w-5xl bg-white rounded-3xl flex flex-col overflow-hidden shadow-2xl border border-slate-200">
-        <header class="p-6 border-b border-slate-100 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                <h2 id="roomName" class="text-lg font-bold text-slate-800 tracking-tight">Terminal</h2>
-            </div>
-            <button onclick="location.reload()" class="text-[10px] font-black text-slate-400 hover:text-red-500 uppercase tracking-widest">Bağlantıyı Kes</button>
-        </header>
+    <div id="chat-screen" class="hidden w-full h-[90vh] max-w-6xl bg-white rounded-3xl flex flex-row overflow-hidden shadow-2xl border border-slate-200">
+        
+        <div class="hidden md:flex w-64 bg-slate-50 border-r border-slate-200 flex-col p-6">
+            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Aktif Birimler</h3>
+            <div id="online-list" class="space-y-2"></div>
+        </div>
 
-        <div id="msgBox" class="flex-1 p-8 overflow-y-auto flex flex-col gap-4 bg-slate-50/30"></div>
+        <div class="flex-1 flex flex-col">
+            <header class="p-6 border-b border-slate-100 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                    <h2 id="roomName" class="text-lg font-bold text-slate-800 uppercase tracking-tight">Bağlantı Bekleniyor...</h2>
+                </div>
+                <button onclick="location.reload()" class="text-[10px] font-black text-slate-400 hover:text-red-500 uppercase">Güvenli Çıkış</button>
+            </header>
 
-        <footer class="p-6 border-t border-slate-100">
-            <div class="flex items-center gap-3">
-                <input id="mInput" type="text" placeholder="Mesajınızı buraya yazın..." class="flex-1 p-4 bg-slate-100 rounded-2xl outline-none focus:bg-white border border-transparent focus:border-slate-200 text-sm font-medium">
-                <button onclick="sendGlow()" class="btn-primary px-8 py-4 rounded-2xl text-xs uppercase tracking-widest">Gönder</button>
-            </div>
-        </footer>
+            <div id="msgBox" class="flex-1 p-8 overflow-y-auto flex flex-col gap-4 bg-slate-50/20"></div>
+
+            <footer class="p-6 border-t border-slate-100 bg-white">
+                <div class="flex items-center gap-3">
+                    <input id="mInput" type="text" placeholder="Şifreli mesajınızı buraya yazın..." class="flex-1 p-4 bg-slate-100 rounded-2xl outline-none border border-transparent focus:border-slate-200 text-sm font-medium">
+                    <button onclick="sendGlow()" class="bg-slate-900 text-white px-8 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest">Gönder</button>
+                </div>
+            </footer>
+        </div>
     </div>
 
     <script>
@@ -94,13 +69,15 @@
             if(user && room && rPass) {
                 myName = user;
                 socket.emit('auth-attempt', { username: user, room: room, roomPass: rPass });
+            } else {
+                alert("Hata: Tüm güvenlik alanlarını doldurun!");
             }
         }
 
         socket.on('login-success', (data) => {
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('chat-screen').classList.remove('hidden');
-            document.getElementById('roomName').innerText = "Oda: " + data.room;
+            document.getElementById('roomName').innerText = "TERMINAL: " + data.room;
         });
 
         socket.on('login-error', (msg) => alert(msg));
@@ -117,7 +94,7 @@
             const isMe = data.sender === myName;
             const html = `
                 <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
-                    <div class="px-5 py-3 ${isMe ? 'msg-me shadow-md' : 'msg-them shadow-sm'} max-w-[75%]">
+                    <div class="px-5 py-3 ${isMe ? 'msg-me' : 'msg-them shadow-sm'} max-w-[75%]">
                         ${!isMe ? `<p class="text-[9px] font-bold opacity-50 mb-1 uppercase tracking-widest">${data.sender}</p>` : ''}
                         <p class="text-sm font-medium leading-relaxed">${data.text}</p>
                     </div>
@@ -126,6 +103,15 @@
             const b = document.getElementById('msgBox');
             b.innerHTML += html;
             b.scrollTop = b.scrollHeight;
+        });
+
+        socket.on('update-online-list', (list) => {
+            document.getElementById('online-list').innerHTML = list.map(u => `
+                <div class="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
+                    <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                    <span class="text-xs font-bold text-slate-700 uppercase tracking-tighter">${u}</span>
+                </div>
+            `).join('');
         });
 
         document.getElementById('mInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendGlow(); });
