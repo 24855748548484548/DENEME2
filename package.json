@@ -1,6 +1,7 @@
 {
-  "name": "glowchat",
+  "name": "glowvibe",
   "version": "1.0.0",
+  "description": "Secure Chat System",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
