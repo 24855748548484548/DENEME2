@@ -9,38 +9,30 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Odaları ve şifrelerini hafızada tutan obje
 const activeRooms = {}; 
 
 io.on('connection', (socket) => {
     socket.on('auth-attempt', (data) => {
         const { username, room, roomPass } = data;
 
-        // Oda daha önce kurulmuş mu kontrol et
         if (activeRooms[room]) {
-            // Oda varsa şifreyi kontrol et
             if (activeRooms[room].password !== roomPass) {
-                socket.emit('login-error', 'Hatalı Oda Şifresi! Lütfen tekrar deneyin.');
+                socket.emit('login-error', 'Hatalı Oda Şifresi! Erişim reddedildi.');
                 return;
             }
         } else {
-            // Oda yoksa, yeni odayı ve şifresini kaydet
             activeRooms[room] = {
                 password: roomPass,
                 users: new Set()
             };
         }
 
-        // Giriş başarılı
         socket.username = username;
         socket.room = room;
-        
         socket.join(room);
         activeRooms[room].users.add(username);
 
         socket.emit('login-success', { room: room });
-
-        // Odadaki kullanıcı listesini güncelle
         io.to(room).emit('update-online-list', Array.from(activeRooms[room].users));
     });
 
@@ -57,8 +49,6 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         if (socket.room && activeRooms[socket.room]) {
             activeRooms[socket.room].users.delete(socket.username);
-            
-            // Oda boşaldıysa odayı sil (sunucuyu yormasın)
             if (activeRooms[socket.room].users.size === 0) {
                 delete activeRooms[socket.room];
             } else {
@@ -70,5 +60,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`GlowVibe Server ${PORT} portunda aktif!`);
+    console.log(`System Online on Port ${PORT}`);
 });
