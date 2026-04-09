@@ -1,6 +1,6 @@
 const express = require('express');
 const http = require('http');
-const { Server } = require("socket.io");
+const { Server } = require('socket.io');
 const path = require('path');
 
 const app = express();
@@ -9,47 +9,66 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-const users = {}; // { username: password }
-const onlineUsers = {}; // { room: [user1, user2] }
+// Odaları ve şifrelerini hafızada tutan obje
+const activeRooms = {}; 
 
 io.on('connection', (socket) => {
     socket.on('auth-attempt', (data) => {
-        const { username, password, room } = data;
+        const { username, room, roomPass } = data;
 
-        if (users[username] && users[username] !== password) {
-            return socket.emit('login-error', 'Şifre Yanlış!');
+        // Oda daha önce kurulmuş mu kontrol et
+        if (activeRooms[room]) {
+            // Oda varsa şifreyi kontrol et
+            if (activeRooms[room].password !== roomPass) {
+                socket.emit('login-error', 'Hatalı Oda Şifresi! Lütfen tekrar deneyin.');
+                return;
+            }
+        } else {
+            // Oda yoksa, yeni odayı ve şifresini kaydet
+            activeRooms[room] = {
+                password: roomPass,
+                users: new Set()
+            };
         }
-        
-        users[username] = password;
+
+        // Giriş başarılı
         socket.username = username;
-        socket.currentRoom = room;
+        socket.room = room;
+        
         socket.join(room);
+        activeRooms[room].users.add(username);
 
-        // Çevrimiçi listesini güncelle
-        if (!onlineUsers[room]) onlineUsers[room] = [];
-        if (!onlineUsers[room].includes(username)) onlineUsers[room].push(username);
+        socket.emit('login-success', { room: room });
 
-        socket.emit('login-success', { username, room });
-        io.to(room).emit('update-online-list', onlineUsers[room]);
+        // Odadaki kullanıcı listesini güncelle
+        io.to(room).emit('update-online-list', Array.from(activeRooms[room].users));
     });
 
     socket.on('send-message', (data) => {
-        if (!socket.username) return;
-        io.to(socket.currentRoom).emit('receive-message', {
-            sender: socket.username,
-            text: data.text,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        });
+        if (socket.room) {
+            io.to(socket.room).emit('receive-message', {
+                sender: socket.username,
+                text: data.text,
+                time: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+            });
+        }
     });
 
     socket.on('disconnect', () => {
-        const room = socket.currentRoom;
-        if (room && onlineUsers[room]) {
-            onlineUsers[room] = onlineUsers[room].filter(u => u !== socket.username);
-            io.to(room).emit('update-online-list', onlineUsers[room]);
+        if (socket.room && activeRooms[socket.room]) {
+            activeRooms[socket.room].users.delete(socket.username);
+            
+            // Oda boşaldıysa odayı sil (sunucuyu yormasın)
+            if (activeRooms[socket.room].users.size === 0) {
+                delete activeRooms[socket.room];
+            } else {
+                io.to(socket.room).emit('update-online-list', Array.from(activeRooms[socket.room].users));
+            }
         }
     });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => console.log("Canlı Sohbet Başladı!"));
+server.listen(PORT, () => {
+    console.log(`GlowVibe Server ${PORT} portunda aktif!`);
+});
